@@ -1,7 +1,11 @@
-const { app, BrowserWindow,Menu } = require('electron')
+const { app, BrowserWindow,Menu,ipcMain } = require('electron')
+
+let win;
+let newProductWindow;
+
 
 function createWindow () {
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -22,6 +26,14 @@ function createWindow () {
   win.loadFile('src/index.html')
 }
 
+// Ipc Renderer Events
+ipcMain.on('product:new', (e, newProduct) => {
+  // send to the Main Window
+  console.log(newProduct);
+  win.webContents.send('product:new', newProduct);
+  newProductWindow.close();
+});
+
 app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
@@ -35,6 +47,24 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+function createNewProductWindow() {
+  newProductWindow = new BrowserWindow({
+    width: 400,
+    height: 330,
+    title: 'Add A New Product',
+    webPreferences: {
+      nodeIntegration: true
+    }
+  });
+  newProductWindow.setMenu(null);
+
+  newProductWindow.loadFile('src/new-product.html')
+
+  newProductWindow.on('closed', () => {
+    newProductWindow = null;
+  });
+}
 
 //Lista de Menu
 const templateMenu = [
@@ -64,3 +94,23 @@ const templateMenu = [
     ]
   }
 ];
+
+
+// Developer Tools in Development Environment
+if (process.env.NODE_ENV !== 'production') {
+  templateMenu.push({
+    label: 'DevTools',
+    submenu: [
+      {
+        label: 'Show/Hide Dev Tools',
+        accelerator: process.platform == 'darwin' ? 'Comand+D' : 'Ctrl+D',
+        click(item, focusedWindow) {
+          focusedWindow.toggleDevTools();
+        }
+      },
+      {
+        role: 'reload'
+      }
+    ]
+  })
+}
